@@ -1,0 +1,62 @@
+{
+    "models": [
+        {
+          "title": "deepseek-r1:8b",
+          "provider": "ollama",
+          "model": "deepseek-r1:8b",
+          "apiBase": "http://${MY_IP}:11434",
+          "description": "Deepseek LLM model for language understanding"
+        }
+      ],
+      "tabAutocompleteModel": {
+        "title": "qwen2.5-coder:1.5b",
+        "provider": "ollama",
+        "model": "qwen2.5-coder:1.5b",
+        "apiBase": "http://${MY_IP}:11434",
+        "description": "Codellama model optimized for tab autocompletion"
+      },
+      "contextProviders": [
+        {
+          "name": "code",
+          "params": {}
+        },
+        {
+          "name": "docs",
+          "params": {}
+        },
+        {
+          "name": "diff",
+          "params": {}
+        },
+        {
+          "name": "terminal",
+          "params": {}
+        },
+        {
+          "name": "problems",
+          "params": {}
+        },
+        {
+          "name": "folder",
+          "params": {}
+        },
+        {
+          "name": "codebase",
+          "params": {}
+        }
+      ],
+      "slashCommands": [
+        {
+          "name": "share",
+          "description": "Export the current chat session to markdown"
+        },
+        {
+          "name": "cmd",
+          "description": "Generate a shell command"
+        },
+        {
+          "name": "commit",
+          "description": "Generate a git commit message"
+        }
+      ]
+    }

@@ -35,13 +35,13 @@ curl http://<your-instance-public-ip>:11434
 # モデル一覧
 curl http://<your-instance-public-ip>:11434/api/tags
 
-※ モデルの起動
+※ プロンプトの実行
 curl http://<your-instance-public-ip>:11434/api/generate -d '{"model": "llama2", "prompt": "Hello, world!"}'
 ```
+※ GPU 用のインスタンスの場合はamiがubuntuなのでユーザはubuntu
 
 
-memo
-- メモリサイズあげてインスタンス立ち直す
-- イマイチuser_data_scriptがうまくいっていない
-- 取りあえず動くとこまでもっていきたい
-- GPU 用のインスタンスを作成する
+5. continueでのollamaの設定
+`/Users/USER_NAME/.continue/config.json`に`ollama_config_sample/config_sample.json`をコピー
+
+
