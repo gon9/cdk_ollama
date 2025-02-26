@@ -4,33 +4,42 @@ from dotenv import load_dotenv
 from aws_cdk import App, Environment
 from cdk_ollama.cdk_ollama_stack import OllamaServerCdkStack
 
-# 変更があっても上書きするために override=True を指定する
-load_dotenv(override=True)
+# .env ファイルから環境変数を読み込む
+load_dotenv()
 
-# インスタンスタイプの読み込み（デフォルトはCPU版）
-instance_type = os.getenv("INSTANCE_TYPE", "m5.2xlarge")
+# 環境変数から値を取得
+use_gpu = os.getenv('USE_GPU', 'false').lower() == 'true'
 
-# GPUインスタンスの場合はGPU用AMIの環境変数から取得]
-is_gpu = os.getenv("IS_GPU", "false")
-if is_gpu:
-    # インスタンスタイプの読み込み
-    # memory 16GB
-    instance_type = "g4dn.xlarge"
-    gpu_ami = os.getenv("GPU_NVIDIA_AMI_ID")
-    if not gpu_ami:
-        raise Exception("GPUインスタンスが指定されていますが、GPU_NVIDIA_AMI_IDが環境変数に設定されていません。")
-    ami_id = gpu_ami
+# インスタンスタイプとAMI IDを選択
+if use_gpu:
+    ami_id = os.getenv('GPU_AMI_ID')
+    instance_type_str = os.getenv('GPU_INSTANCE_TYPE')
 else:
-    # CPUインスタンスの場合は、スタック内で通常のUbuntu 22.04が選択されるようにします
-    instance_type = "m5.2xlarge"
-    ami_id = os.getenv("CPU_AMI_ID") # ubuntu 22.04
+    ami_id = os.getenv('CPU_AMI_ID')
+    instance_type_str = os.getenv('CPU_INSTANCE_TYPE')
+
+# 値が設定されていない場合のエラーハンドリング
+if not instance_type_str or not ami_id:
+    raise ValueError("INSTANCE_TYPE or AMI_ID is not set properly in the .env file")
+
+key_pair_name = os.getenv("KEY_PAIR_NAME", "default-key-pair")
+peer_ip = os.getenv("PEER_IP", "0.0.0.0")
+s3_bucket_name = os.getenv("S3_BUCKET_NAME", "defauld_s3_bucket_name")
+s3_bucket_arn = os.getenv("S3_BUCKET_ARN", "defauld_s3_bucket_arn")
+s3_bucket_arn_wildcard = os.getenv("S3_BUCKET_ARN_WILDCARD", "defauld_s3_bucket_arn_wildcard")
 
 app = App()
 OllamaServerCdkStack(
-    app, 
+    app,
     "OllamaServerStack",
-    instance_type_str=instance_type,
+    use_gpu=use_gpu,
+    instance_type_str=instance_type_str,
     ami_id=ami_id,
+    key_pair_name=key_pair_name,
+    peer_ip=peer_ip,
+    s3_bucket_name=s3_bucket_name,
+    s3_bucket_arn=s3_bucket_arn,
+    s3_bucket_arn_wildcard=s3_bucket_arn_wildcard,
     env=Environment(
         account=os.getenv('CDK_DEFAULT_ACCOUNT'),
         region=os.getenv('CDK_DEFAULT_REGION')

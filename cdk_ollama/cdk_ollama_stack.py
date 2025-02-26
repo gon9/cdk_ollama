@@ -12,11 +12,24 @@ from constructs import Construct
 load_dotenv()
 
 class OllamaServerCdkStack(Stack):
-    def __init__(self, scope: Construct, id: str, *, instance_type_str: str = "m5.2xlarge", ami_id: str = None, **kwargs) -> None:
+    def __init__(
+            self,
+            scope: Construct, 
+            construct_id: str, 
+            use_gpu: bool,
+            instance_type_str: str, 
+            ami_id: str, 
+            key_pair_name: str, 
+            peer_ip: str, 
+            s3_bucket_name: str, 
+            s3_bucket_arn: str, 
+            s3_bucket_arn_wildcard: str, 
+            **kwargs
+        ) -> None:
         """
         :param instance_type_str: CPU版の場合は "m5.2xlarge"、GPU版の場合は例えば "g4dn.xlarge" など、用途に合わせて指定可能
         """
-        super().__init__(scope, id, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
 
         # デフォルト VPC を取得
         vpc = ec2.Vpc.from_lookup(self, "DefaultVPC", is_default=True)
@@ -39,8 +52,8 @@ class OllamaServerCdkStack(Stack):
                         "s3:ListBucket",
                     ],
                     resources=[
-                        os.environ.get("S3_BUCKET_ARN"),
-                        os.environ.get("S3_BUCKET_ARN_WILDCARD"),
+                        s3_bucket_arn,
+                        s3_bucket_arn_wildcard,
                     ],
                 )
             ]
@@ -88,11 +101,11 @@ class OllamaServerCdkStack(Stack):
             role=ollama_role,
             security_group=ollama_sg,  # 作成したセキュリティグループを指定
             # キーペア名を.envから読み込み。環境変数が設定されていない場合は"default-key-pair"となる
-            key_name=os.environ.get("KEY_PAIR_NAME", "default-key-pair"),
+            key_name=key_pair_name,
             # ブロックデバイスの設定
             block_devices=[
-                ec2.BlockDevice(
-                    device_name="/dev/xvda",
+                ec2.BlockDevice( 
+                    device_name="/dev/sda1", # Ubuntuの場合は通常 /dev/sda1
                     volume=ec2.BlockDeviceVolume.ebs(
                         volume_size=100,
                         volume_type=ec2.EbsDeviceVolumeType.GP3,
@@ -102,7 +115,7 @@ class OllamaServerCdkStack(Stack):
         )
 
         # Docker実行コマンドの設定
-        if os.getenv("IS_GPU") == "true":
+        if use_gpu:
             docker_command = (
                 "docker run -d --gpus all "
                 "-v ollama:/root/.ollama "
@@ -110,6 +123,10 @@ class OllamaServerCdkStack(Stack):
                 "--name ollama "
                 "--restart always "
                 "ollama/ollama:latest"
+            )
+            docker_runtime_command = (
+                "sudo nvidia-ctk runtime configure --runtime=docker "
+                "sudo systemctl restart docker "
             )
         else:
             docker_command = (
@@ -119,6 +136,9 @@ class OllamaServerCdkStack(Stack):
                 "--name ollama "
                 "--restart always "
                 "ollama/ollama:latest"
+            )
+            docker_runtime_command = (
+                ""
             )
 
         # ユーザーデータスクリプトの作成
@@ -139,6 +159,11 @@ class OllamaServerCdkStack(Stack):
             "sudo sed -i 's/^Port 22/Port 10022/' /etc/ssh/sshd_config",
             "sudo systemctl restart ssh",
             "",
+            "# Docker ランタイムの設定(GPU)",
+            docker_runtime_command,
+            "",
+            "# Docker再起動待機（必要に応じて調整）",
+            "sleep 15",
             "# Docker コンテナの起動",
             docker_command,
             "",
@@ -167,4 +192,3 @@ class OllamaServerCdkStack(Stack):
                 ec2.Port.tcp(port),
                 description
             )
-
